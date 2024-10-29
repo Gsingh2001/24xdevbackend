@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import express from 'express';
+import cors from 'cors';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -8,27 +9,30 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Allow CORS from all origins for testing
+app.use(cors());
+
 // Middleware to parse JSON requests
 app.use(express.json());
 
 // Create a transporter object using Zoho Mail SMTP transport
 const mailTransport = nodemailer.createTransport({
-    host: 'smtp.zoho.in',   // Zoho SMTP server
-    port: 465,              // SMTP port for SSL
-    secure: true,           // Use SSL
+    host: 'smtp.zoho.in',
+    port: 465,
+    secure: true,
     auth: {
-        user: process.env.EMAIL_USER, // Your Zoho email address
-        pass: process.env.EMAIL_PASS, // Your Zoho email password
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
     },
 });
 
 // Function to send email
 const sendEmail = async (to, subject, htmlContent) => {
     const mailOptions = {
-        from: process.env.DEFAULT_FROM_EMAIL, // Default from email address
-        to: to,                                 // Recipient's email address
-        subject: subject,                       // Email subject
-        html: htmlContent,                      // HTML content of the email
+        from: process.env.DEFAULT_FROM_EMAIL,
+        to,
+        subject,
+        html: htmlContent,
     };
 
     try {
@@ -36,7 +40,7 @@ const sendEmail = async (to, subject, htmlContent) => {
         console.log(`Email successfully sent to ${to}: ${info.response}`);
     } catch (error) {
         console.error(`Error sending email: ${error}`);
-        throw error; // Rethrow the error for API response
+        throw error;
     }
 };
 
@@ -53,7 +57,7 @@ app.post('/send-email', async (req, res) => {
         name,
         otherService,
         services,
-    } = req.body; // Extract data from the request body
+    } = req.body;
 
     if (!email) {
         return res.status(400).json({ error: 'Recipient email is required.' });
@@ -76,8 +80,8 @@ app.post('/send-email', async (req, res) => {
     `;
 
     try {
-        await sendEmail(email, emailSubject, emailContent); // Send the first email
-        // Prepare the second email content
+        await sendEmail(email, emailSubject, emailContent);
+
         const additionalEmailSubject = 'New Inquiry from Client';
         const additionalEmailContent = `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
@@ -94,7 +98,6 @@ app.post('/send-email', async (req, res) => {
         </div>
         `;
 
-        // Send the additional email asynchronously without blocking the response
         sendEmail('gsingh07@outlook.in', additionalEmailSubject, additionalEmailContent).catch((error) => {
             console.error('Failed to send additional email:', error);
         });
